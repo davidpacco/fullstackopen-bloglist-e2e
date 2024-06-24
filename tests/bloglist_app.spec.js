@@ -82,4 +82,53 @@ describe('Blog app', () => {
       })
     })
   })
+
+  describe('When there exist some blogs', () => {
+    beforeEach(async ({ page, request }) => {
+      await request.post('/api/users', {
+        data: {
+          name: 'Other User',
+          username: 'otheruser',
+          password: 'otherpassword'
+        }
+      })
+
+      await loginWith(page, 'otheruser', 'otherpassword')
+      await createBlog(page, {
+        title: 'Other blog #1',
+        author: 'Other Author',
+        url: 'www.testing.com',
+        likes: 2
+      })
+      await createBlog(page, {
+        title: 'Other blog #2',
+        author: 'Other Author',
+        url: 'www.testing.com',
+        likes: 10
+      })
+
+      await page.getByRole('button', { name: 'Logout' }).click()
+
+      await loginWith(page, 'testuser', 'testpassword')
+      await createBlog(page, {
+        title: 'Testing from playwright',
+        author: 'Some Author',
+        url: 'www.testing.com',
+        likes: 4
+      })
+    })
+
+    test('only the user who added the blog sees the Remove button', async ({ page }) => {
+      const notOwnBlog = await page.getByText('Other blog #1')
+      await notOwnBlog.getByRole('button', { name: 'View' }).click()
+      const notOwnBlogBtn = await notOwnBlog.getByRole('button', { name: 'Remove' })
+      await expect(notOwnBlogBtn).not.toBeVisible()
+
+      const ownBlog = await page.getByText('Testing from playwright')
+      await ownBlog.getByRole('button', { name: 'View' }).click()
+      const ownBlogBtn = await ownBlog.getByRole('button', { name: 'Remove' })
+      await expect(ownBlogBtn).toBeVisible()
+    })
+  })
 })
+

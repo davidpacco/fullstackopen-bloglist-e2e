@@ -10,6 +10,7 @@ const createBlog = async (page, data) => {
   await page.getByTestId('author').fill(data.author)
   await page.getByTestId('url').fill(data.url)
   await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByText(`${data.title} - ${data.author}`).waitFor()
 }
 
 export {
