@@ -1,5 +1,5 @@
 const { describe, test, expect, beforeEach } = require('@playwright/test')
-const { loginWith, createBlog } = require('./helper')
+const { loginWith, createBlog, likeBlog } = require('./helper')
 
 describe('Blog app', () => {
   beforeEach(async ({ page, request }) => {
@@ -83,7 +83,7 @@ describe('Blog app', () => {
     })
   })
 
-  describe('When there exist some blogs', () => {
+  describe('When there exist multiple blogs', () => {
     beforeEach(async ({ page, request }) => {
       await request.post('/api/users', {
         data: {
@@ -98,13 +98,11 @@ describe('Blog app', () => {
         title: 'Other blog #1',
         author: 'Other Author',
         url: 'www.testing.com',
-        likes: 2
       })
       await createBlog(page, {
         title: 'Other blog #2',
         author: 'Other Author',
         url: 'www.testing.com',
-        likes: 10
       })
 
       await page.getByRole('button', { name: 'Logout' }).click()
@@ -114,7 +112,6 @@ describe('Blog app', () => {
         title: 'Testing from playwright',
         author: 'Some Author',
         url: 'www.testing.com',
-        likes: 4
       })
     })
 
@@ -128,6 +125,22 @@ describe('Blog app', () => {
       await ownBlog.getByRole('button', { name: 'View' }).click()
       const ownBlogBtn = await ownBlog.getByRole('button', { name: 'Remove' })
       await expect(ownBlogBtn).toBeVisible()
+    })
+
+    test('blogs are arranged in order according to likes', async ({ page }) => {
+      const blogs = await page.locator('.blog').all()
+
+      for (let blog of blogs) {
+        await blog.getByRole('button', { name: 'View' }).click()
+      }
+
+      await likeBlog(page, 'Other blog #1', 1)
+      await likeBlog(page, 'Other blog #2', 3)
+      await likeBlog(page, 'Testing from playwright', 2)
+
+      await expect(blogs[0].getByText('Likes 3')).toBeVisible()
+      await expect(blogs[1].getByText('Likes 2')).toBeVisible()
+      await expect(blogs[2].getByText('Likes 1')).toBeVisible()
     })
   })
 })
